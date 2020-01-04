@@ -449,3 +449,24 @@ end
         throw(BandError(A, J-K))
     end
 end
+
+for op in (:-, :+)
+    @eval begin
+        function $op(A::BlockSkylineMatrix, D::Diagonal)
+            checksquareblocks(A)
+            B = LinearAlgebra.copy_oftype(A, Base._return_type(+, Tuple{eltype(A), eltype(D)}))
+            @inbounds for i in axes(A, 1)
+                B[i,i] = $op(B[i,i], D.diag[i])
+            end
+            B
+        end
+        function $op(D::Diagonal, A::BlockSkylineMatrix)
+            checksquareblocks(A)
+            B = LinearAlgebra.copy_oftype($op(A), Base._return_type(+, Tuple{eltype(A), eltype(D)}))
+            @inbounds for i in axes(A, 1)
+                B[i,i] += D.diag[i]
+            end
+            B
+        end
+    end
+end

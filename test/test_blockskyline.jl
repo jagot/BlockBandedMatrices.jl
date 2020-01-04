@@ -104,4 +104,27 @@ Random.seed!(0)
         @test Matrix(AC) == Matrix(A) + Matrix(C)
         @test blockisequal(axes(AC),axes(C))
     end
+
+    @testset "BlockSkylineMatrix–Diagonal arithmetic" begin
+        l,u = 2,1
+        N = M = 4
+        cols = rows = 1:N
+        A = BlockBandedMatrix(Ones(sum(rows),sum(cols)), rows,cols, (l,u))
+        V = Diagonal(1:size(A,1))
+
+        @testset for (label,op,a,b) in [("(A + V",+,A,V),
+                                        ("(V + A",+,V,A),
+                                        ("(A - V",-,A,V),
+                                        ("(V - A",-,V,A)]
+            C = op(a,b)
+            @test C isa BlockSkylineMatrix
+            @test C.block_sizes == A.block_sizes
+            @test Matrix(C) == op(Matrix(a),Matrix(b))
+        end
+
+        # This matrix has no blocks on the main diagonal
+        B = BlockBandedMatrix(Ones(sum(rows),sum(cols)), rows,cols, (l,-1))
+        @test_throws BandedMatrices.BandError B+V
+        @test_throws BandedMatrices.BandError V-B
+    end
 end
